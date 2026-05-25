@@ -12,7 +12,6 @@ class _MockUser {
   String password;
   bool isVerified;
   String? verificationCode;
-  String? resetCode;
 
   _MockUser({
     required this.username,
@@ -20,7 +19,6 @@ class _MockUser {
     required this.password,
     this.isVerified = false,
     this.verificationCode,
-    this.resetCode,
   });
 }
 
@@ -256,25 +254,24 @@ class AuthService {
     }
   }
 
-  // Password reset flows
-  Future<Map<String, dynamic>> forgotPassword(String email) async {
+  // ==============================
+  // PASSWORD RESET (FIREBASE FLOW)
+  // ==============================
+
+  Future<Map<String, dynamic>> sendPasswordResetEmail(String email) async {
     if (_shouldUseMock) {
-      final user = _mockUsers[email];
-      if (user == null) {
-        return {'success': false, 'message': 'User not found'};
-      }
-      final code = _generateCode();
-      user.resetCode = code;
       return {
-        'success': true, 
-        'code': code,
-        'message': 'Reset code generated (mock mode).',
+        'success': true,
+        'message': 'Password reset email sent (mock mode).',
       };
     }
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      return {'success': true, 'message': 'Password reset email sent'};
+      return {
+        'success': true,
+        'message': 'Password reset email sent.',
+      };
     } catch (e) {
       String message = 'Failed to send password reset email';
       if (e is FirebaseAuthException) {
@@ -282,48 +279,10 @@ class AuthService {
       } else {
         message = e.toString();
       }
-      return {'success': false, 'message': message};
-    }
-  }
-
-  Future<Map<String, dynamic>> sendPasswordResetEmail(String email) => forgotPassword(email);
-
-  Future<bool> verifyPasswordResetCode(String code) async {
-    if (_shouldUseMock) {
-      return _mockUsers.values.any((u) => u.resetCode != null && u.resetCode == code);
-    }
-    return true; // Firebase reset handles code verification on the web link itself
-  }
-
-  Future<Map<String, dynamic>> resetPassword({
-    required String newPassword,
-    required String confirmPassword,
-  }) async {
-    if (newPassword != confirmPassword) {
-      return {'success': false, 'message': 'Passwords do not match'};
-    }
-
-    if (_shouldUseMock) {
-      _MockUser? mock;
-      for (var u in _mockUsers.values) {
-        if (u.resetCode != null) {
-          mock = u;
-          break;
-        }
-      }
-      if (mock == null) return {'success': false, 'message': 'No pending reset'};
-      mock.password = newPassword;
-      mock.resetCode = null;
-      return {'success': true, 'message': 'Password reset successful'};
-    }
-
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return {'success': false, 'message': 'No logged‑in user'};
-      await user.updatePassword(newPassword);
-      return {'success': true, 'message': 'Password reset successful'};
-    } catch (e) {
-      return {'success': false, 'message': e.toString()};
+      return {
+        'success': false,
+        'message': message,
+      };
     }
   }
 
@@ -336,6 +295,39 @@ class AuthService {
     }
     _mockCurrentUser = null;
     _mockPendingUser = null;
+  }
+
+  // Update Profile
+  Future<Map<String, dynamic>> updateProfile({String? newUsername, String? photoUrl}) async {
+    if (_shouldUseMock) {
+      return {'success': true, 'message': 'Profile updated (mock mode).'};
+    }
+
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return {'success': false, 'message': 'Not logged in'};
+
+      if (newUsername != null) {
+        await user.updateDisplayName(newUsername);
+      }
+      if (photoUrl != null && !photoUrl.startsWith('data:image/')) {
+        await user.updatePhotoURL(photoUrl);
+      }
+      await user.reload(); // Refresh the user object
+
+      // Update in Firestore
+      final updates = <String, dynamic>{};
+      if (newUsername != null) updates['username'] = newUsername;
+      if (photoUrl != null) updates['photoUrl'] = photoUrl;
+
+      if (updates.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set(updates, SetOptions(merge: true));
+      }
+
+      return {'success': true, 'message': 'Profile updated'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
   }
 
   // Helper getters for UI & tests

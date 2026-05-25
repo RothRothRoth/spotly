@@ -6,7 +6,6 @@ import 'screens/auth/login.dart';
 import 'screens/auth/register.dart';
 import 'screens/auth/forgot_password.dart';
 import 'screens/auth/verification.dart';
-import 'screens/auth/reset_password.dart';
 import 'screens/auth/verify_successful.dart';
 
 class AuthNavigation {
@@ -19,7 +18,6 @@ class AuthNavigation {
       '/register': (context) => const RegisterScreen(),
       '/forgot_password': (context) => const ForgotPasswordScreen(),
       '/verification': (context) => const VerificationScreen(),
-      '/reset_password': (context) => const ResetPasswordScreen(),
       '/verify_successful': (context) => const VerifySuccessfulScreen(),
     };
   }

@@ -119,32 +119,10 @@ void main() {
       expect(verifyResult, isFalse);
     });
 
-    test('Forgot password sends verification code', () async {
-      final result = await authService.forgotPassword('user@spotly.com');
+    test('Send password reset email success', () async {
+      final result = await authService.sendPasswordResetEmail('user@spotly.com');
       expect(result['success'], isTrue);
-      expect(result['code'], isNotNull);
-    });
-
-    test('Verify password reset code and change password successfully', () async {
-      final forgotResult = await authService.forgotPassword('user@spotly.com');
-      final code = forgotResult['code'] as String;
-
-      final verifyReset = await authService.verifyPasswordResetCode(code);
-      expect(verifyReset, isTrue);
-
-      final resetResult = await authService.resetPassword(
-        newPassword: 'newpassword777',
-        confirmPassword: 'newpassword777',
-      );
-      expect(resetResult['success'], isTrue);
-
-      // Verify that we can log in with new password
-      await authService.logout();
-      final loginResult = await authService.login(
-        usernameOrEmail: 'user@spotly.com',
-        password: 'newpassword777',
-      );
-      expect(loginResult['success'], isTrue);
+      expect(result['message'], contains('Password reset email sent'));
     });
   });
 }

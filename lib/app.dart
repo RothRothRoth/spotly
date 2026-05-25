@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/dashboard/dashboard.dart';
 import 'screens/dashboard/map.dart';
-import 'screens/dashboard/review.dart';
+import 'screens/dashboard/browse.dart';
 import 'screens/dashboard/profile.dart';
 
 class AppNavigation {
@@ -9,7 +9,7 @@ class AppNavigation {
     return {
       '/dashboard': (context) => const DashboardScreen(),
       '/map': (context) => const MapScreen(),
-      '/review': (context) => const ReviewScreen(),
+      '/browse': (context) => const BrowseScreen(),
       '/profile': (context) => const ProfileScreen(),
     };
   }

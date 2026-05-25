@@ -47,8 +47,8 @@ class WelcomeScreen extends StatelessWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8E5E0),
-                    foregroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF2E2C2A),
+                    foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
@@ -90,14 +90,14 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 
-                // Email Button
+                // Sign Up with Email Button
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pushNamed(context, '/register');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E2C2A),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFFE8E5E0),
+                    foregroundColor: Colors.black,
                     minimumSize: const Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
@@ -120,35 +120,37 @@ class WelcomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 140),
-                
-                // Bottom login link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "Have an account? ",
-                      style: TextStyle(
-                        color: Color(0xFF7A7774),
-                        fontSize: 15,
-                      ),
+                const SizedBox(height: 16),
+
+                // Log In with Email Button
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE8E5E0),
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      child: const Text(
-                        'Log in',
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.login, size: 20),
+                      SizedBox(width: 12),
+                      Text(
+                        'Log in with email',
                         style: TextStyle(
-                          color: Colors.black,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          decoration: TextDecoration.underline,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

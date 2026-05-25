@@ -5,6 +5,9 @@ class VerifySuccessfulScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final isPasswordReset = args?['mode'] == 'password_reset';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F2EE),
       body: SafeArea(
@@ -16,9 +19,9 @@ class VerifySuccessfulScreen extends StatelessWidget {
               const Spacer(),
               const SizedBox(height: 120),
               const SizedBox(height: 40),
-              const Text(
-                'Verify Successful',
-                style: TextStyle(
+              Text(
+                isPasswordReset ? 'Reset Successful' : 'Verify Successful',
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
@@ -26,9 +29,11 @@ class VerifySuccessfulScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Successfully verified your account',
-                style: TextStyle(
+              Text(
+                isPasswordReset
+                    ? 'Successfully reset your password'
+                    : 'Successfully verified your account',
+                style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF7A7774),
                 ),

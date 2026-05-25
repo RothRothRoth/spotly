@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const Text(
-                    'Username',
+                    'Username or Email',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   CustomTextField(
                     controller: _usernameController,
-                    hintText: 'enter your username',
+                    hintText: 'enter your username or email',
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Username is required';
