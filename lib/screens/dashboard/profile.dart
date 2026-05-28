@@ -6,6 +6,8 @@ import '../../services/auth_service.dart';
 import '../../services/post_service.dart';
 import '../../utils/image_helper.dart';
 import 'add.dart';
+import 'notifications.dart';
+import 'view.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -130,6 +132,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: isSaving ? null : () async {
                     setState(() { isSaving = true; });
                     final result = await _authService.updateProfile(newUsername: nameController.text);
+                    
+                    if (result['success'] == true && user != null) {
+                      // Update authorName in all posts by this user
+                      final query1 = await FirebaseFirestore.instance
+                          .collection('posts')
+                          .where('authorId', isEqualTo: user.uid)
+                          .get();
+                          
+                      final query2 = await FirebaseFirestore.instance
+                          .collection('posts')
+                          .where('authorName', isEqualTo: currentUsername)
+                          .get();
+                      
+                      final batch = FirebaseFirestore.instance.batch();
+                      final seenDocs = <String>{};
+                      
+                      for (var doc in [...query1.docs, ...query2.docs]) {
+                        if (!seenDocs.contains(doc.id)) {
+                          seenDocs.add(doc.id);
+                          batch.update(doc.reference, {
+                            'authorName': nameController.text,
+                            'authorId': user.uid, // Stamp the ID for future proofing
+                          });
+                        }
+                      }
+                      await batch.commit();
+                    }
+
                     if (context.mounted) {
                       Navigator.pop(context);
                       if (result['success'] == true) {
@@ -231,14 +261,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               letterSpacing: -0.5,
                             ),
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_horiz, color: Color(0xFF2E2C2A)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_none, color: Color(0xFF2E2C2A), size: 28),
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                                },
+                              ),
+                              PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_horiz, color: Color(0xFF2E2C2A)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               onSelected: (value) async {
                                 if (value == 'logout') {
                                   await _authService.logout();
@@ -274,12 +307,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   value: 'logout',
                                   child: Row(children: [Icon(Icons.logout, color: Colors.redAccent, size: 20), SizedBox(width: 12), Text('Log Out', style: TextStyle(color: Colors.redAccent))]),
                                 ),
-                              ],
-                            ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 24),
 
                       // Profile Header Info card
@@ -464,22 +497,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           itemBuilder: (context, index) {
                             final data = displayList[index];
                             final isFavorite = favoritesList.contains(data['id']);
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Row(
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ViewSpotScreen(
+                                      post: data,
+                                      heroTag: 'spot_image_${data['id']}_profile',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Row(
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: CustomImage(
-                                      data['imageUrl'] ?? '',
-                                      width: 90,
-                                      height: 90,
-                                      fit: BoxFit.cover,
+                                    child: Hero(
+                                      tag: 'spot_image_${data['id']}_profile',
+                                      child: CustomImage(
+                                        data['imageUrl'] ?? '',
+                                        width: 90,
+                                        height: 90,
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -547,9 +595,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 40),
                     ],
                   ),

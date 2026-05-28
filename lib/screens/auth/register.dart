@@ -80,13 +80,9 @@ class _RegisterScreenState
 
         Navigator.pushNamed(
           context,
-          '/verification',
+          '/verify_successful',
           arguments: {
-            'email':
-                _emailController.text
-                    .trim(),
-            'mode':
-                'signup',
+            'mode': 'signup_success',
           },
         );
       } else {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -164,7 +165,8 @@ class _AddSpotScreenState extends State<AddSpotScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = AuthService().currentUser;
+      final appUser = AuthService().currentUser;
+      final firebaseUser = FirebaseAuth.instance.currentUser;
       final postService = PostService();
 
       String? imageUrl;
@@ -180,7 +182,8 @@ class _AddSpotScreenState extends State<AddSpotScreen> {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'rating': '$_rating/5',
-        'authorName': user?.username ?? 'Anonymous',
+        'authorName': appUser?.username ?? 'Anonymous',
+        'authorId': firebaseUser?.uid ?? 'unknown',
         'latitude': _pinLocation.latitude,
         'longitude': _pinLocation.longitude,
         'address': _address,

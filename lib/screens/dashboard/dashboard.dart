@@ -9,6 +9,8 @@ import 'profile.dart';
 import 'add.dart';
 import '../../utils/image_helper.dart';
 import 'view.dart';
+import 'notifications.dart';
+import '../../services/notification_service.dart';
 
 // Tab 0: Dashboard/Welcome feed view (Aesthetic Redesign)
 class DashboardTab extends StatelessWidget {
@@ -58,14 +60,46 @@ class DashboardTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_horiz, color: Color(0xFF2E2C2A)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      Row(
+                        children: [
+                          StreamBuilder<List<Map<String, dynamic>>>(
+                            stream: NotificationService().getNotifications(),
+                            builder: (context, snapshot) {
+                              final notifications = snapshot.data ?? [];
+                              final hasUnread = notifications.any((n) => !(n['isRead'] ?? false));
+                              
+                              return Stack(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.notifications_none, color: Color(0xFF2E2C2A), size: 28),
+                                    onPressed: () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                                    },
+                                  ),
+                                  if (hasUnread)
+                                    Positioned(
+                                      right: 12,
+                                      top: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFEFEBE4), width: 1.5),
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 10,
+                                          minHeight: 10,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_horiz, color: Color(0xFF2E2C2A)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           onSelected: (value) async {
                             if (value == 'logout') {
                               await AuthService().logout();
@@ -103,9 +137,10 @@ class DashboardTab extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
+                ),
 
                   const SizedBox(height: 24),
 
@@ -132,7 +167,7 @@ class DashboardTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back! ✨',
+                          'Welcome back!',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 15,
@@ -193,7 +228,7 @@ class DashboardTab extends StatelessWidget {
 
                           return GestureDetector(
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => ViewSpotScreen(post: data)));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => ViewSpotScreen(post: data, heroTag: 'spot_image_${data['id']}_dash')));
                             },
                             child: Container(
                               width: 280,
@@ -211,7 +246,7 @@ class DashboardTab extends StatelessWidget {
                                   fit: StackFit.expand,
                                   children: [
                                     Hero(
-                                      tag: 'spot_image_${data['id']}',
+                                      tag: 'spot_image_${data['id']}_dash',
                                       child: CustomImage(
                                         data['imageUrl'] ?? '',
                                         fit: BoxFit.cover,
@@ -335,7 +370,7 @@ class DashboardTab extends StatelessWidget {
                         final data = posts[index];
                         return GestureDetector(
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => ViewSpotScreen(post: data)));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ViewSpotScreen(post: data, heroTag: 'spot_image_${data['id']}_dash_list')));
                           },
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 14),
@@ -349,18 +384,18 @@ class DashboardTab extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                Hero(
-                                  tag: 'spot_image_${data['id']}',
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: CustomImage(
-                                      data['imageUrl'] ?? '',
-                                      width: 64,
-                                      height: 64,
-                                      fit: BoxFit.cover,
+                                  Hero(
+                                    tag: 'spot_image_${data['id']}_dash_list',
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: CustomImage(
+                                        data['imageUrl'] ?? '',
+                                        width: 64,
+                                        height: 64,
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
-                                ),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(

@@ -20,75 +20,7 @@ class WelcomeScreen extends StatelessWidget {
                 const BrandLogo(fontSize: 100),
                 const SizedBox(height: 80),
                 
-                // Google Button
-                ElevatedButton(
-                  onPressed: () async {
-                    final BuildContext ctx = context;
-                    final result = await AuthService().signInWithGoogle();
-                    if (result['success'] == true) {
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        const SnackBar(
-                          content: Text('Logged in with Google!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      Navigator.pushNamedAndRemoveUntil(
-                        ctx,
-                        '/dashboard',
-                        (route) => false,
-                      );
-                    } else {
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        SnackBar(
-                          content: Text(result['message'] ?? 'Google sign-in failed'),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E2C2A),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'G',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+
                 
                 // Sign Up with Email Button
                 ElevatedButton(

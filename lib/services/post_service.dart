@@ -6,7 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'auth_service.dart';
-
+import 'notification_service.dart';
 class PostService {
   // Singleton pattern
   static final PostService _instance = PostService._internal();
@@ -125,6 +125,115 @@ class PostService {
         .map((snapshot) {
       if (!snapshot.exists || !snapshot.data()!.containsKey('favorites')) return [];
       return List<String>.from(snapshot.data()!['favorites']);
+    });
+  }
+  // --- REVIEWS ---
+  Future<void> addReview(String postId, String text, String postAuthorId, int rating) async {
+    if (_shouldUseMock) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    final username = user.displayName ?? user.email?.split('@').first ?? 'User';
+
+    await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .add({
+      'text': text,
+      'authorId': user.uid,
+      'authorName': username,
+      'rating': rating,
+      'createdAt': FieldValue.serverTimestamp(),
+      'likes': [],
+      'dislikes': [],
+    });
+
+    if (postAuthorId.isNotEmpty && postAuthorId != user.uid) {
+      await NotificationService().sendNotification(
+        toUserId: postAuthorId,
+        title: 'New Review',
+        message: '$username left a $rating-star review: "$text"',
+        postId: postId,
+      );
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> getComments(String postId) {
+    if (_shouldUseMock) return Stream.value([]);
+    
+    return FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    });
+  }
+
+  Future<void> toggleCommentUpvote(String postId, String commentId) async {
+    if (_shouldUseMock) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId);
+
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    List<dynamic> likes = doc.data()?['likes'] ?? [];
+    List<dynamic> dislikes = doc.data()?['dislikes'] ?? [];
+
+    if (likes.contains(user.uid)) {
+      likes.remove(user.uid);
+    } else {
+      likes.add(user.uid);
+      dislikes.remove(user.uid); // Cannot dislike and like at the same time
+    }
+
+    await docRef.update({
+      'likes': likes,
+      'dislikes': dislikes,
+    });
+  }
+
+  Future<void> toggleCommentDownvote(String postId, String commentId) async {
+    if (_shouldUseMock) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId);
+
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    List<dynamic> likes = doc.data()?['likes'] ?? [];
+    List<dynamic> dislikes = doc.data()?['dislikes'] ?? [];
+
+    if (dislikes.contains(user.uid)) {
+      dislikes.remove(user.uid);
+    } else {
+      dislikes.add(user.uid);
+      likes.remove(user.uid); // Cannot dislike and like at the same time
+    }
+
+    await docRef.update({
+      'likes': likes,
+      'dislikes': dislikes,
     });
   }
 }

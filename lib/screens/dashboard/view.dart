@@ -3,11 +3,14 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../utils/image_helper.dart';
-
+import '../../services/post_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:timeago/timeago.dart' as timeago;
 class ViewSpotScreen extends StatefulWidget {
   final Map<String, dynamic> post;
+  final String heroTag;
 
-  const ViewSpotScreen({super.key, required this.post});
+  const ViewSpotScreen({super.key, required this.post, required this.heroTag});
 
   @override
   State<ViewSpotScreen> createState() => _ViewSpotScreenState();
@@ -17,6 +20,9 @@ class _ViewSpotScreenState extends State<ViewSpotScreen> with SingleTickerProvid
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
+  final TextEditingController _reviewController = TextEditingController();
+  final PostService _postService = PostService();
+  int _selectedRating = 5;
 
   @override
   void initState() {
@@ -46,6 +52,7 @@ class _ViewSpotScreenState extends State<ViewSpotScreen> with SingleTickerProvid
   @override
   void dispose() {
     _animController.dispose();
+    _reviewController.dispose();
     super.dispose();
   }
 
@@ -89,7 +96,7 @@ class _ViewSpotScreenState extends State<ViewSpotScreen> with SingleTickerProvid
               children: [
                 // Hero Image Header
                 Hero(
-                  tag: 'spot_image_${widget.post['id']}',
+                  tag: widget.heroTag,
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
                     child: CustomImage(
@@ -251,6 +258,9 @@ class _ViewSpotScreenState extends State<ViewSpotScreen> with SingleTickerProvid
                             ),
                           ),
                         ),
+                        
+                        // Reviews Section
+                        _buildReviewsSection(),
                       ],
                     ),
                   ),
@@ -336,6 +346,205 @@ class _ViewSpotScreenState extends State<ViewSpotScreen> with SingleTickerProvid
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReviewsSection() {
+    final postId = widget.post['id'] ?? '';
+    final postAuthorId = widget.post['authorId'] ?? '';
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 40),
+        const Text(
+          'Reviews',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E2C2A),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Rating selector
+        Row(
+          children: List.generate(5, (index) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedRating = index + 1;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Icon(
+                  index < _selectedRating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 28,
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 12),
+
+        // Review input
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _reviewController,
+                decoration: InputDecoration(
+                  hintText: 'Write a review...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF2E2C2A),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                onPressed: () async {
+                  final text = _reviewController.text.trim();
+                  if (text.isNotEmpty) {
+                    await _postService.addReview(postId, text, postAuthorId, _selectedRating);
+                    _reviewController.clear();
+                    setState(() {
+                      _selectedRating = 5;
+                    });
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // Reviews list
+        StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _postService.getComments(postId), // we still use the 'comments' collection under the hood
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final reviews = snapshot.data ?? [];
+            if (reviews.isEmpty) {
+              return const Text('No reviews yet. Be the first!', style: TextStyle(color: Color(0xFF7A7774)));
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: reviews.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+                final reviewId = review['id'];
+                final authorName = review['authorName'] ?? 'User';
+                final text = review['text'] ?? '';
+                final rating = review['rating'] as int? ?? 5; // default to 5 if old comment
+                final timestamp = review['createdAt'];
+                final timeString = timestamp != null ? timeago.format(timestamp.toDate()) : 'Just now';
+                
+                final likes = (review['likes'] as List?) ?? [];
+                final dislikes = (review['dislikes'] as List?) ?? [];
+                
+                final isLiked = likes.contains(currentUserId);
+                final isDisliked = dislikes.contains(currentUserId);
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            authorName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E2C2A)),
+                          ),
+                          Text(
+                            timeString,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFFAAA69F)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: List.generate(5, (starIndex) {
+                          return Icon(
+                            starIndex < rating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 16,
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(text, style: const TextStyle(color: Color(0xFF5A5855))),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _postService.toggleCommentUpvote(postId, reviewId),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined,
+                                  size: 18,
+                                  color: isLiked ? Colors.blueAccent : const Color(0xFF7A7774),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  likes.length.toString(),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isLiked ? Colors.blueAccent : const Color(0xFF7A7774),
+                                    fontWeight: isLiked ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          GestureDetector(
+                            onTap: () => _postService.toggleCommentDownvote(postId, reviewId),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined,
+                                  size: 18,
+                                  color: isDisliked ? Colors.redAccent : const Color(0xFF7A7774),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }

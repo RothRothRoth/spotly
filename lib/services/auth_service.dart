@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../models/app_user.dart';
 
 /// Simple in‑memory mock user used when Firebase operations fail.
@@ -208,9 +209,9 @@ class AuthService {
     }
   }
 
-  // Stub for Google Sign‑In
+  // Stub for Google Sign-In
   Future<Map<String, dynamic>> signInWithGoogle() async {
-    return {'success': false, 'message': 'Google sign‑in not configured'};
+    return {'success': false, 'message': 'Google sign-in is disabled'};
   }
 
   // Email verification

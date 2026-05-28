@@ -8,6 +8,19 @@ class VerifySuccessfulScreen extends StatelessWidget {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final isPasswordReset = args?['mode'] == 'password_reset';
 
+    final isSignup = args?['mode'] == 'signup_success';
+
+    String title = 'Verify Successful';
+    String message = 'Successfully verified your account';
+
+    if (isPasswordReset) {
+      title = 'Email Sent';
+      message = 'Please check your email for the password reset link.';
+    } else if (isSignup) {
+      title = 'Registration Successful';
+      message = 'Please check your email for the verification link to activate your account.';
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F2EE),
       body: SafeArea(
@@ -20,19 +33,18 @@ class VerifySuccessfulScreen extends StatelessWidget {
               const SizedBox(height: 120),
               const SizedBox(height: 40),
               Text(
-                isPasswordReset ? 'Reset Successful' : 'Verify Successful',
+                title,
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                   letterSpacing: -0.5,
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
-                isPasswordReset
-                    ? 'Successfully reset your password'
-                    : 'Successfully verified your account',
+                message,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF7A7774),
